@@ -774,6 +774,48 @@
         .date-warning {
             background-color: rgba(255, 0, 0, 0.05);
         }
+        
+        /* 文件输入样式美化 */
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: var(--light-color);
+            border: 2px dashed var(--gray-light);
+            border-radius: var(--border-radius);
+            text-align: center;
+            color: var(--gray-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .file-input-label:hover {
+            background: var(--gray-light);
+            border-color: var(--primary-color);
+        }
+        
+        .file-name {
+            display: block;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--primary-color);
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -945,6 +987,7 @@
             <div class="data-actions">
                 <button class="btn-secondary" id="btnExportData">导出数据</button>
                 <button class="btn-secondary" id="btnImportData">导入数据</button>
+                <button class="btn-secondary" id="btnCopyData">复制数据</button>
                 <button class="btn-expense" id="btnClearData">清空数据</button>
             </div>
         </div>
@@ -1027,7 +1070,11 @@
             
             <div class="form-group">
                 <label>选择JSON文件</label>
-                <input type="file" id="importFile" accept=".json">
+                <div class="file-input-wrapper">
+                    <input type="file" id="importFile" accept=".json">
+                    <div class="file-input-label" id="fileInputLabel">点击选择文件或拖拽文件到这里</div>
+                    <span class="file-name" id="fileNameDisplay">未选择文件</span>
+                </div>
             </div>
             
             <div class="form-group">
@@ -1124,6 +1171,7 @@
                 }
 
                 this.updateCategoryLists();
+                this.setupFileDragAndDrop();
             },
             
             setCurrentDate() {
@@ -1255,48 +1303,118 @@
                 localStorage.setItem('recordTypes', JSON.stringify(this.data.recordTypes));
             },
             
-exportData() {
-    const data = {
-        stations: this.data.stations,
-        records: this.data.records,
-        recordTypes: this.data.recordTypes,
-        exportedAt: new Date().toISOString()
-    };
-    
-    const dataStr = JSON.stringify(data, null, 2);
-    const filename = `water_station_data_${new Date().toLocaleDateString('en-US')}.json`;
-    
-    // 尝试使用FileSaver.js的polyfill方法
-    if (typeof navigator !== 'undefined' && navigator.msSaveOrOpenBlob) {
-        // IE10+专用方法
-        const blob = new Blob([dataStr], {type: 'application/json'});
-        navigator.msSaveOrOpenBlob(blob, filename);
-    } else {
-        // 标准方法
-        const blob = new Blob([dataStr], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
-    }
-    
-    this.showAlert('数据导出成功');
-},
+            exportData() {
+                console.log('开始导出数据...');
+                
+                const data = {
+                    stations: this.data.stations,
+                    records: this.data.records,
+                    recordTypes: this.data.recordTypes,
+                    exportedAt: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(data, null, 2);
+                const filename = `water_station_data_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.json`;
+                
+                console.log('文件名:', filename);
+                console.log('数据大小:', dataStr.length, 'bytes');
+                
+                try {
+                    // 创建Blob
+                    const blob = new Blob([dataStr], {type: 'application/json;charset=utf-8'});
+                    
+                    // 创建URL
+                    const url = URL.createObjectURL(blob);
+                    
+                    // 方法1：优先使用标准的下载方式
+                    const link = document.createElement('a');
+                    link.style.display = 'none';
+                    link.href = url;
+                    link.download = filename;
+                    
+                    // 检查浏览器是否支持download属性
+                    if (typeof link.download === 'undefined') {
+                        console.log('浏览器不支持download属性，尝试新窗口打开');
+                        // 如果不支持download属性，打开新窗口
+                        window.open(url);
+                        this.showAlert('数据已在新窗口打开，请右键另存为');
+                    } else {
+                        // 支持download属性，使用标准下载
+                        document.body.appendChild(link);
+                        link.click();
+                        
+                        // 清理
+                        setTimeout(() => {
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                        }, 100);
+                        
+                        this.showAlert('数据导出成功，文件已开始下载');
+                    }
+                } catch (error) {
+                    console.error('导出失败:', error);
+                    
+                    // 备用方案：直接弹出另存为对话框
+                    try {
+                        const blob = new Blob([dataStr], {type: 'application/json'});
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const text = e.target.result;
+                            const newWindow = window.open();
+                            newWindow.document.write('<pre>' + text + '</pre>');
+                            newWindow.document.title = filename;
+                            newWindow.document.close();
+                        };
+                        reader.readAsText(blob);
+                        this.showAlert('数据已在新窗口打开，请手动保存');
+                    } catch (fallbackError) {
+                        console.error('备用方案失败:', fallbackError);
+                        
+                        // 最终方案：复制到剪贴板
+                        this.copyToClipboard(dataStr);
+                    }
+                }
+            },
+            
+            copyToClipboard(text) {
+                try {
+                    navigator.clipboard.writeText(text).then(() => {
+                        this.showAlert('数据已复制到剪贴板，请粘贴到文本编辑器中保存为.json文件');
+                    }).catch(err => {
+                        console.error('复制失败:', err);
+                        
+                        // 传统方式复制
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        
+                        this.showAlert('数据已复制到剪贴板，请粘贴到文本编辑器中保存为.json文件');
+                    });
+                } catch (copyError) {
+                    console.error('复制失败:', copyError);
+                    this.showAlert('导出失败，请检查浏览器权限或使用其他浏览器');
+                }
+            },
             
             importData(file, override) {
+                if (!file) {
+                    this.showAlert('请先选择文件');
+                    return;
+                }
+                
                 const reader = new FileReader();
                 
                 reader.onload = (e) => {
                     try {
                         const importedData = JSON.parse(e.target.result);
+                        
+                        // 验证数据格式
+                        if (!importedData.stations || !importedData.records || !importedData.recordTypes) {
+                            throw new Error('文件格式不正确，缺少必要的数据字段');
+                        }
                         
                         if (override) {
                             this.data.stations = importedData.stations || [];
@@ -1343,12 +1461,16 @@ exportData() {
                         this.updateUI();
                         this.updateCategoryLists();
                         
-                        this.showAlert('数据导入成功');
+                        this.showAlert(`数据导入成功！导入${importedData.stations.length}个站点，${Object.keys(importedData.records).length}条记录`);
                         this.hideModal();
                     } catch (error) {
-                        alert('导入失败：文件格式不正确');
-                        console.error(error);
+                        console.error('导入失败:', error);
+                        this.showAlert(`导入失败：${error.message}`);
                     }
+                };
+                
+                reader.onerror = () => {
+                    this.showAlert('文件读取失败，请重试');
                 };
                 
                 reader.readAsText(file);
@@ -1372,6 +1494,18 @@ exportData() {
                 this.updateCategoryLists();
                 this.showPage('settingsPage');
                 this.showAlert('数据已清空');
+            },
+            
+            copyData() {
+                const data = {
+                    stations: this.data.stations,
+                    records: this.data.records,
+                    recordTypes: this.data.recordTypes,
+                    exportedAt: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(data, null, 2);
+                this.copyToClipboard(dataStr);
             },
             
             updateUI() {
@@ -2197,6 +2331,10 @@ exportData() {
                 
                 document.getElementById('recordAmount').value = '';
                 document.getElementById('recordNote').value = '';
+                
+                // 清空文件选择显示
+                document.getElementById('fileNameDisplay').textContent = '未选择文件';
+                document.getElementById('importFile').value = '';
             },
             
             setupEventListeners() {
@@ -2241,6 +2379,7 @@ exportData() {
                 });
                 
                 document.getElementById('btnExportData').addEventListener('click', () => {
+                    console.log('导出按钮被点击');
                     this.exportData();
                 });
                 
@@ -2255,12 +2394,16 @@ exportData() {
                     if (file) {
                         this.importData(file, override);
                     } else {
-                        alert('请选择要导入的文件');
+                        this.showAlert('请先选择要导入的文件');
                     }
                 });
                 
                 document.getElementById('btnClearData').addEventListener('click', () => {
                     this.clearData();
+                });
+                
+                document.getElementById('btnCopyData').addEventListener('click', () => {
+                    this.copyData();
                 });
                 
                 document.getElementById('btnSaveStationName').addEventListener('click', () => {
@@ -2354,6 +2497,72 @@ exportData() {
                 });
                 
                 this.initCategoryFilter();
+                
+                // 文件选择事件
+                document.getElementById('importFile').addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        document.getElementById('fileNameDisplay').textContent = `已选择: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                    } else {
+                        document.getElementById('fileNameDisplay').textContent = '未选择文件';
+                    }
+                });
+            },
+            
+            setupFileDragAndDrop() {
+                const fileInput = document.getElementById('importFile');
+                const fileInputLabel = document.getElementById('fileInputLabel');
+                const fileNameDisplay = document.getElementById('fileNameDisplay');
+                
+                // 阻止默认拖放行为
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    fileInputLabel.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                // 高亮拖放区域
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    fileInputLabel.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    fileInputLabel.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    fileInputLabel.style.background = 'var(--primary-light)';
+                    fileInputLabel.style.borderColor = 'var(--primary-color)';
+                }
+                
+                function unhighlight() {
+                    fileInputLabel.style.background = 'var(--light-color)';
+                    fileInputLabel.style.borderColor = 'var(--gray-light)';
+                }
+                
+                // 处理文件放置
+                fileInputLabel.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    
+                    if (files.length > 0) {
+                        const file = files[0];
+                        if (file.name.endsWith('.json')) {
+                            // 创建一个新的FileList对象
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+                            fileInput.files = dataTransfer.files;
+                            
+                            // 触发change事件
+                            fileInput.dispatchEvent(new Event('change'));
+                        } else {
+                            fileNameDisplay.textContent = '请选择JSON文件 (.json)';
+                        }
+                    }
+                });
             },
             
             initCategoryFilter() {
