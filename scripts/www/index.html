@@ -1,11 +1,2384 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水站多站点记账系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-light: #e6e9ff;
+            --income-color: #4cc9f0;
+            --income-light: #e6f7ff;
+            --expense-color: #f72585;
+            --expense-light: #ffe6ee;
+            --dark-color: #2b2d42;
+            --light-color: #f8f9fa;
+            --gray-color: #adb5bd;
+            --gray-light: #e9ecef;
+            --warning-color: #ff0000;
+            --success-color: #2ec4b6;
+            --border-radius: 12px;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --transition: all 0.25s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f8f9fa;
+            color: #2b2d42;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            min-height: 100vh;
+            padding-bottom: 120px;
+        }
+        
+        .app-header {
+            text-align: center;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        
+        .app-header h1 {
+            color: var(--dark-color);
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+        
+        .current-month {
+            color: var(--gray-color);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .summary-card {
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            color: var(--dark-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 24px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--gray-light);
+        }
+        
+        .summary-card div {
+            text-align: center;
+            flex: 1;
+            padding: 0 8px;
+        }
+        
+        .summary-card span {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-color);
+            margin-bottom: 6px;
+        }
+        
+        .summary-card strong {
+            font-size: 13px;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .income strong {
+            color: var(--income-color);
+        }
+        
+        .expense strong {
+            color: var(--expense-color);
+        }
+        
+        .balance strong {
+            color: var(--primary-color);
+        }
+        
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-income {
+            background-color: var(--income-light);
+            color: var(--income-color);
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+        
+        .btn-income:hover {
+            background-color: var(--income-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(76, 201, 240, 0.2);
+        }
+        
+        .btn-expense {
+            background-color: var(--expense-light);
+            color: var(--expense-color);
+            border: 1px solid rgba(247, 37, 133, 0.3);
+        }
+        
+        .btn-expense:hover {
+            background-color: var(--expense-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(247, 37, 133, 0.2);
+        }
+        
+        .btn-submit {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+        
+        .btn-submit:hover {
+            background-color: #3a56d4;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: white;
+            color: var(--dark-color);
+            border: 1px solid var(--gray-light);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--light-color);
+            border-color: var(--gray-color);
+        }
+        
+        .record-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .record-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--gray-light);
+            align-items: center;
+        }
+        
+        .record-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .record-amount.income {
+            color: var(--income-color);
+            font-weight: 600;
+        }
+        
+        .record-amount.expense {
+            color: var(--expense-color);
+            font-weight: 600;
+        }
+        
+        .record-category {
+            font-size: 12px;
+            color: var(--gray-color);
+            margin-top: 4px;
+        }
+        
+        .record-note {
+            font-size: 13px;
+            color: var(--gray-color);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+        
+        .record-date {
+            font-size: 14px;
+            color: var(--gray-color);
+        }
+        
+        .record-created-date {
+            font-size: 12px;
+            color: var(--gray-color);
+            margin-top: 4px;
+        }
+        
+        .record-business-date {
+            font-size: 12px;
+        }
+        
+        .record-date-warning {
+            color: var(--warning-color);
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark-color);
+            font-size: 14px;
+        }
+        
+        .form-group input, 
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition);
+        }
+        
+        .form-group input:focus, 
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+        
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .app-nav {
+            display: flex;
+            justify-content: space-around;
+            background: white;
+            padding: 12px 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            border-top: 1px solid var(--gray-light);
+            z-index: 10;
+        }
+        
+        .nav-item {
+            text-align: center;
+            padding: 4px 10px;
+            cursor: pointer;
+            color: var(--gray-color);
+            font-size: 12px;
+            font-weight: 500;
+            transition: var(--transition);
+            border-radius: 8px;
+        }
+        
+        .nav-item.active {
+            color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+        
+        .nav-item i {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        
+        .station-selector {
+            margin-bottom: 20px;
+        }
+        
+        .station-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            background-color: white;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .chart-container {
+            margin: 24px 0;
+            position: relative;
+            height: 250px;
+            background: white;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--gray-light);
+        }
+        
+        .stats-detail {
+            margin-top: 24px;
+        }
+        
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .stats-label {
+            display: flex;
+            align-items: center;
+        }
+        
+        .stats-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: var(--border-radius);
+            padding: 24px;
+            animation: modalFadeIn 0.3s;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-light);
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--dark-color);
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-color);
+            transition: var(--transition);
+            padding: 4px;
+        }
+        
+        .close-modal:hover {
+            color: var(--dark-color);
+            transform: rotate(90deg);
+        }
+        
+        @media (max-width: 400px) {
+            .app-container {
+                padding: 16px;
+            }
+            
+            button {
+                padding: 12px;
+                font-size: 14px;
+            }
+        }
+        
+        .edit-btn {
+            background-color: white;
+            color: var(--primary-color);
+            padding: 6px 12px;
+            font-size: 12px;
+            border: 1px solid var(--primary-light);
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 8px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .edit-btn:hover {
+            background-color: var(--primary-light);
+        }
+
+        .station-item {
+            background: white;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--gray-light);
+        }
+
+        .station-item-name {
+            flex-grow: 1;
+            font-weight: 500;
+        }
+
+        .station-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .alert-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            z-index: 1000;
+            animation: fadeInOut 2.5s forwards;
+            display: none;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; top: 10px; }
+            20% { opacity: 1; top: 20px; }
+            80% { opacity: 1; top: 20px; }
+            100% { opacity: 0; top: 10px; }
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--gray-light);
+        }
+
+        .summary-table th, .summary-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-light);
+            font-size: 13px;
+        }
+
+        .summary-table th {
+            background-color: var(--light-color);
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .summary-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .summary-table .income-cell {
+            color: var(--income-color);
+            font-weight: 600;
+        }
+
+        .summary-table .expense-cell {
+            color: var(--expense-color);
+            font-weight: 600;
+        }
+
+        .summary-table .balance-cell {
+            font-weight: 600;
+        }
+
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-light);
+            background: white;
+            margin-bottom: 8px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--gray-light);
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .category-type-label {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 50px;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .category-type-income {
+            background-color: var(--income-light);
+            color: var(--income-color);
+        }
+
+        .category-type-expense {
+            background-color: var(--expense-light);
+            color: var(--expense-color);
+        }
+
+        h2, h3 {
+            color: var(--dark-color);
+            margin: 24px 0 16px 0;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 20px;
+        }
+
+        h3 {
+            font-size: 18px;
+        }
+
+.input-group {
+    display: flex;
+    flex-direction: column; /* 改为竖排 */
+    gap: 12px; /* 上下间距 */
+    align-items: stretch; /* 让元素占满宽度 */
+}
+
+
+.input-group input {
+    flex: 1; /* 占据剩余空间 */
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--gray-light);
+    border-radius: var(--border-radius);
+}
+
+/* 按钮样式 - 固定宽度 */
+.input-group button {
+    width: 100px; /* 固定宽度 */
+    padding: 12px;
+    white-space: nowrap; /* 防止文字换行 */
+    margin-top: 0px; /* 按钮离上方更近 */
+    margin-left: auto; /* 按钮自动推到右边 */
+}
+        
+.input-group select {
+    flex: 1;  /* 下拉框占1份宽度 */
+    min-width: 120px;  /* 最小宽度 */
+}
+        
+        .data-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .data-actions button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        /* 美化后的筛选选项卡样式 */
+        .filter-tabs {
+            display: flex;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--gray-light);
+            padding: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .filter-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-color);
+            transition: var(--transition);
+            position: relative;
+            border-radius: 8px;
+        }
+
+        .filter-tab.active {
+            color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+
+        .filter-tab:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 60%;
+            width: 1px;
+            background-color: var(--gray-light);
+        }
+
+.filter-content {
+    display: none;
+    padding: 16px 20px;                     /* 内边距稍大 */
+    background: #fff;                        /* 白色卡片 */
+    border-radius: 12px;                     /* 圆角更明显 */
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08); /* 阴影加大，更立体 */
+    border: 1px solid #e0e0e0;              /* 边框颜色淡灰，更精致 */
+    margin-bottom: 20px;                     /* 底部间距略大 */
+    transition: all 0.3s ease;               /* 动画平滑 */
+}
+
+.filter-content.active {
+    display: block;
+    animation: fadeIn 0.3s;
+}
+
+/* 二级控件样式美化 */
+.filter-content select,
+.filter-content input[type="month"] {
+    width: 100%;
+    padding: 10px 14px;                      /* 内边距更舒服 */
+    font-size: 14px;
+    border: 1px solid #ccc;                  /* 边框颜色统一 */
+    border-radius: 8px;                       /* 圆角 */
+    outline: none;
+    transition: all 0.2s;
+}
+
+/* 聚焦高亮 */
+.filter-content select:focus,
+.filter-content input[type="month"]:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 6px rgba(0,123,255,0.3);
+}
+
+
+        .filter-options {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 0;
+            flex-wrap: wrap;
+        }
+
+        .filter-options select, 
+        .filter-options input {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .time-selector {
+            margin-bottom: 16px;
+        }
+
+        .time-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius);
+        }
+
+        #customRangeContainer {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        #customRangeContainer input {
+            flex: 1;
+        }
+
+        #customRangeContainer span {
+            color: var(--gray-color);
+            font-size: 14px;
+        }
+
+        .empty {
+            color: var(--gray-color);
+            text-align: center;
+            padding: 20px 0;
+            font-size: 14px;
+        }
+
+        .date-warning {
+            background-color: rgba(255, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-message" id="alertMessage"></div>
+
+    <div class="app-container">
+        <div class="app-header">
+            <h1 id="currentStationName">水站记账系统</h1>
+            <div class="current-month" id="currentDate">2023年11月</div>
+        </div>
+        
+        <div class="station-selector">
+            <select id="stationSelect">
+                <option value="">所有水站</option>
+            </select>
+        </div>
+        
+        <div class="page active" id="homePage">
+            <div class="summary-card">
+                <div class="income">
+                    <span>收入</span>
+                    <strong id="totalIncome">¥0</strong>
+                </div>
+                <div class="expense">
+                    <span>支出</span>
+                    <strong id="totalExpense">¥0</strong>
+                </div>
+                <div class="balance">
+                    <span>结余</span>
+                    <strong id="totalBalance">¥0</strong>
+                </div>
+            </div>
+            
+            <div class="quick-actions">
+                <button class="btn-income" id="btnAddIncome">
+                    <span>+</span>
+                    <span>记收入</span>
+                </button>
+                <button class="btn-expense" id="btnAddExpense">
+                    <span>-</span>
+                    <span>记支出</span>
+                </button>
+            </div>
+            
+            <div class="recent-records">
+                <h3>最近记录</h3>
+                <ul class="record-list" id="recentRecords">
+                    <li class="empty">暂无记录</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="page" id="recordsPage">
+            <!-- 美化后的筛选选项卡 -->
+            <div class="filter-tabs">
+                <div class="filter-tab active" data-filter="type">类型</div>
+                <div class="filter-tab" data-filter="category">分类</div>
+                <div class="filter-tab" data-filter="date">日期</div>
+            </div>
+            
+            <!-- 类型筛选内容 -->
+            <div class="filter-content active" id="typeFilterContent">
+                <select id="recordTypeFilter">
+                    <option value="all">所有类型</option>
+                    <option value="income">收入</option>
+                    <option value="expense">支出</option>
+                </select>
+            </div>
+            
+            <!-- 分类筛选内容 -->
+            <div class="filter-content" id="categoryFilterContent">
+                <select id="recordCategoryFilter">
+                    <option value="all">所有分类</option>
+                </select>
+            </div>
+            
+            <!-- 日期筛选内容 -->
+            <div class="filter-content" id="dateFilterContent">
+                <input type="month" id="recordMonthFilter" value="选择日期">
+            </div>
+            
+            <ul class="record-list" id="allRecords">
+                <li class="empty">暂无记录</li>
+            </ul>
+        </div>
+        
+        <div class="page" id="statsPage">
+            <div class="time-selector">
+                <select id="statsTimeRange">
+                    <option value="month">本月</option>
+                    <option value="lastMonth">上月</option>
+                    <option value="quarter">本季度</option>
+                    <option value="year">本年</option>
+                    <option value="custom">自定义范围</option>
+                </select>
+                <div id="customRangeContainer" style="display: none;">
+                    <input type="month" id="startMonth">
+                    <span>至</span>
+                    <input type="month" id="endMonth">
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="incomeChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+            </div>
+
+            <div class="summary-table-container">
+                <h3>收支汇总</h3>
+                <table class="summary-table" id="summaryTable">
+                    <thead>
+                        <tr>
+                            <th>月份</th>
+                            <th>收入</th>
+                            <th>支出</th>
+                            <th>结余</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTableBody">
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="stats-detail" id="statsDetail">
+            </div>
+        </div>
+        
+        <div class="page" id="settingsPage">
+            <h2>站点管理</h2>
+            
+            <div class="form-group">
+                <label>添加新水站</label>
+                <div class="input-group">
+                    <input type="text" id="newStationName" placeholder="输入水站名称">
+                    <button class="btn-submit" id="btnAddStation">添加</button>
+                </div>
+            </div>
+            
+            <h3>我的水站</h3>
+            <ul class="station-list" id="stationList">
+            </ul>
+
+            <h2>收入/支出类型管理</h2>
+            <div class="form-group">
+                <label>添加新类型</label>
+                <div class="input-group">
+                    <select id="newCategoryType">
+                        <option value="income">收入类型</option>
+                        <option value="expense">支出类型</option>
+                    </select>
+                    <input type="text" id="newCategoryName" placeholder="输入类型名称">
+                    <button class="btn-submit" id="btnAddCategory">添加</button>
+                </div>
+            </div>
+            
+            <h3>收入类型</h3>
+            <ul class="category-list" id="incomeCategoryList">
+                <li class="empty">暂无收入类型</li>
+            </ul>
+
+            <h3>支出类型</h3>
+            <ul class="category-list" id="expenseCategoryList">
+                <li class="empty">暂无支出类型</li>
+            </ul>
+            
+            <div class="data-actions">
+                <button class="btn-secondary" id="btnExportData">导出数据</button>
+                <button class="btn-secondary" id="btnImportData">导入数据</button>
+                <button class="btn-expense" id="btnClearData">清空数据</button>
+            </div>
+        </div>
+        
+        <div class="app-nav">
+            <div class="nav-item active" data-page="homePage">
+                <i>🏠</i>
+                <span>首页</span>
+            </div>
+            <div class="nav-item" data-page="recordsPage">
+                <i>📝</i>
+                <span>记录</span>
+            </div>
+            <div class="nav-item" data-page="statsPage">
+                <i>📊</i>
+                <span>统计</span>
+            </div>
+            <div class="nav-item" data-page="settingsPage">
+                <i>⚙️</i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="recordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">添加记录</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>选择水站</label>
+                <select id="modalStationSelect">
+                    <option value="">请选择水站</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>金额 (元)</label>
+                <input type="number" id="recordAmount" placeholder="输入金额">
+            </div>
+            
+            <div class="form-group">
+                <label>类型</label>
+                <select id="recordCategory">
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>支付方式</label>
+                <select id="recordPaymentMethod">
+                    <option value="wechat">微信</option>
+                    <option value="alipay">支付宝</option>
+                    <option value="cash">现金</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="recordDate">
+            </div>
+            
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="recordNote" placeholder="可选备注"></textarea>
+            </div>
+            
+            <button class="btn-submit" id="btnSaveRecord">保存记录</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">导入数据</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>选择JSON文件</label>
+                <input type="file" id="importFile" accept=".json">
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="importOverride">
+                    覆盖现有数据
+                </label>
+            </div>
+            
+            <button class="btn-submit" id="btnConfirmImport">导入</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="editStationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑水站名称</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>新名称</label>
+                <input type="text" id="editStationName" placeholder="输入新名称">
+                <input type="hidden" id="editStationId">
+            </div>
+            
+            <button class="btn-submit" id="btnSaveStationName">保存</button>
+        </div>
+    </div>
+
+    <div class="modal" id="editCategoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑类型</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>类型</label>
+                <select id="editCategoryType" disabled>
+                    <option value="income">收入</option>
+                    <option value="expense">支出</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>名称</label>
+                <input type="text" id="editCategoryName" placeholder="输入类型名称">
+                <input type="hidden" id="editCategoryId">
+            </div>
+            
+            <button class="btn-submit" id="btnSaveCategory">保存</button>
+            <button class="btn-expense" id="btnDeleteCategory">删除</button>
+        </div>
+    </div>
+    
+    <script>
+        const App = {
+            data: {
+                stations: JSON.parse(localStorage.getItem('waterStations')) || [],
+                records: JSON.parse(localStorage.getItem('waterStationRecords')) || {},
+                currentStation: null,
+                recordTypes: JSON.parse(localStorage.getItem('recordTypes')) || {
+                    income: [],
+                    expense: []
+                },
+                paymentMethods: [
+                    { id: 'wechat', name: '微信' },
+                    { id: 'alipay', name: '支付宝' },
+                    { id: 'cash', name: '现金' },
+                    { id: 'other', name: '其他' }
+                ]
+            },
+            
+            showAlert(message) {
+                const alertEl = document.getElementById('alertMessage');
+                alertEl.textContent = message;
+                alertEl.style.display = 'block';
+                
+                setTimeout(() => {
+                    alertEl.style.display = 'none';
+                }, 2500);
+            },
+            
+            init() {
+                this.setCurrentDate();
+                this.loadStations();
+                this.setupEventListeners();
+                
+                if (this.data.stations.length === 0) {
+                    this.showPage('settingsPage');
+                } else {
+                    this.selectStation('');
+                }
+
+                this.updateCategoryLists();
+            },
+            
+            setCurrentDate() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+                document.getElementById('currentDate').textContent = `${year}年${month}月`;
+            },
+            
+            loadStations() {
+                const stationSelect = document.getElementById('stationSelect');
+                const modalStationSelect = document.getElementById('modalStationSelect');
+                
+                stationSelect.innerHTML = '<option value="">所有水站</option>';
+                modalStationSelect.innerHTML = '<option value="">请选择水站</option>';
+                
+                this.data.stations.forEach(station => {
+                    const option = document.createElement('option');
+                    option.value = station.id;
+                    option.textContent = station.name;
+                    stationSelect.appendChild(option.cloneNode(true));
+                    modalStationSelect.appendChild(option);
+                });
+            },
+            
+            selectStation(stationId) {
+                this.data.currentStation = stationId;
+                
+                if (stationId) {
+                    document.getElementById('currentStationName').textContent = 
+                        this.getStationName(stationId) + ' - 记账系统';
+                    
+                    if (!this.data.records[stationId]) {
+                        this.data.records[stationId] = [];
+                        this.saveRecords();
+                    }
+                } else {
+                    document.getElementById('currentStationName').textContent = '水站记账系统';
+                }
+                
+                this.updateUI();
+            },
+            
+            getStationName(stationId) {
+                const station = this.data.stations.find(s => s.id === stationId);
+                return station ? station.name : '未知站点';
+            },
+            
+            addStation(name) {
+                if (!name.trim()) return;
+                
+                const newStation = {
+                    id: Date.now().toString(),
+                    name: name.trim(),
+                    createdAt: new Date().toISOString()
+                };
+                
+                this.data.stations.push(newStation);
+                this.saveStations();
+                this.loadStations();
+                
+                if (!this.data.records[newStation.id]) {
+                    this.data.records[newStation.id] = [];
+                    this.saveRecords();
+                }
+                
+                document.getElementById('newStationName').value = '';
+                this.showAlert('水站添加成功');
+            },
+            
+            editStation(stationId, newName) {
+                if (!newName.trim()) return false;
+                
+                const station = this.data.stations.find(s => s.id === stationId);
+                if (station) {
+                    station.name = newName.trim();
+                    this.saveStations();
+                    this.loadStations();
+                    
+                    if (this.data.currentStation === stationId) {
+                        document.getElementById('currentStationName').textContent = 
+                            station.name + ' - 记账系统';
+                    }
+                    
+                    this.showAlert('水站名称修改成功');
+                    return true;
+                }
+                return false;
+            },
+            
+            addRecord(type, amount, category, paymentMethod, date, note) {
+                const stationId = document.getElementById('modalStationSelect').value;
+                if (!stationId || !amount) return;
+                
+                const newRecord = {
+                    id: Date.now().toString(),
+                    type,
+                    amount: parseFloat(amount),
+                    category,
+                    paymentMethod,
+                    date,
+                    note: note || '',
+                    createdAt: new Date().toISOString()
+                };
+                
+                if (!this.data.records[stationId]) {
+                    this.data.records[stationId] = [];
+                }
+                
+                this.data.records[stationId].unshift(newRecord);
+                this.saveRecords();
+                this.updateUI();
+                this.hideModal();
+                this.showAlert('记录添加成功');
+                
+                // 更新当前选中的水站
+                this.selectStation(stationId);
+            },
+            
+            saveStations() {
+                localStorage.setItem('waterStations', JSON.stringify(this.data.stations));
+            },
+            
+            saveRecords() {
+                localStorage.setItem('waterStationRecords', JSON.stringify(this.data.records));
+            },
+
+            saveRecordTypes() {
+                localStorage.setItem('recordTypes', JSON.stringify(this.data.recordTypes));
+            },
+            
+exportData() {
+    const data = {
+        stations: this.data.stations,
+        records: this.data.records,
+        recordTypes: this.data.recordTypes,
+        exportedAt: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const filename = `water_station_data_${new Date().toLocaleDateString('en-US')}.json`;
+    
+    // 尝试使用FileSaver.js的polyfill方法
+    if (typeof navigator !== 'undefined' && navigator.msSaveOrOpenBlob) {
+        // IE10+专用方法
+        const blob = new Blob([dataStr], {type: 'application/json'});
+        navigator.msSaveOrOpenBlob(blob, filename);
+    } else {
+        // 标准方法
+        const blob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+    }
+    
+    this.showAlert('数据导出成功');
+},
+            
+            importData(file, override) {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        if (override) {
+                            this.data.stations = importedData.stations || [];
+                            this.data.records = importedData.records || {};
+                            this.data.recordTypes = importedData.recordTypes || {
+                                income: [],
+                                expense: []
+                            };
+                        } else {
+                            const existingStationIds = this.data.stations.map(s => s.id);
+                            const newStations = importedData.stations.filter(s => 
+                                !existingStationIds.includes(s.id));
+                            this.data.stations = [...this.data.stations, ...newStations];
+                            
+                            for (const stationId in importedData.records) {
+                                if (this.data.records[stationId]) {
+                                    const existingRecordIds = this.data.records[stationId].map(r => r.id);
+                                    const newRecords = importedData.records[stationId].filter(r => 
+                                        !existingRecordIds.includes(r.id));
+                                    this.data.records[stationId] = [...this.data.records[stationId], ...newRecords];
+                                } else {
+                                    this.data.records[stationId] = importedData.records[stationId];
+                                }
+                            }
+
+                            // Merge record types
+                            if (importedData.recordTypes) {
+                                const existingIncomeIds = this.data.recordTypes.income.map(c => c.id);
+                                const newIncomeCategories = importedData.recordTypes.income.filter(c => 
+                                    !existingIncomeIds.includes(c.id));
+                                this.data.recordTypes.income = [...this.data.recordTypes.income, ...newIncomeCategories];
+
+                                const existingExpenseIds = this.data.recordTypes.expense.map(c => c.id);
+                                const newExpenseCategories = importedData.recordTypes.expense.filter(c => 
+                                    !existingExpenseIds.includes(c.id));
+                                this.data.recordTypes.expense = [...this.data.recordTypes.expense, ...newExpenseCategories];
+                            }
+                        }
+                        
+                        this.saveStations();
+                        this.saveRecords();
+                        this.saveRecordTypes();
+                        this.loadStations();
+                        this.updateUI();
+                        this.updateCategoryLists();
+                        
+                        this.showAlert('数据导入成功');
+                        this.hideModal();
+                    } catch (error) {
+                        alert('导入失败：文件格式不正确');
+                        console.error(error);
+                    }
+                };
+                
+                reader.readAsText(file);
+            },
+            
+            clearData() {
+                if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
+                
+                localStorage.clear();
+                this.data.stations = [];
+                this.data.records = {};
+                this.data.recordTypes = {
+                    income: [],
+                    expense: []
+                };
+                this.data.currentStation = null;
+                
+                this.saveRecordTypes();
+                this.loadStations();
+                this.updateUI();
+                this.updateCategoryLists();
+                this.showPage('settingsPage');
+                this.showAlert('数据已清空');
+            },
+            
+            updateUI() {
+                this.updateSummary();
+                this.updateRecentRecords();
+                this.updateAllRecords();
+                this.updateCharts();
+                this.updateStationList();
+                this.updateSummaryTable();
+            },
+            
+            updateSummary() {
+                let records = [];
+                
+                if (this.data.currentStation) {
+                    records = this.data.records[this.data.currentStation] || [];
+                } else {
+                    for (const stationId in this.data.records) {
+                        records = records.concat(this.data.records[stationId]);
+                    }
+                }
+                
+                const totalIncome = records
+                    .filter(r => r.type === 'income')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const totalExpense = records
+                    .filter(r => r.type === 'expense')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const balance = totalIncome - totalExpense;
+                
+                document.getElementById('totalIncome').textContent = `¥${totalIncome.toFixed(2)}`;
+                document.getElementById('totalExpense').textContent = `¥${totalExpense.toFixed(2)}`;
+                document.getElementById('totalBalance').textContent = `¥${balance.toFixed(2)}`;
+            },
+            
+            updateRecentRecords() {
+                let records = [];
+                
+                if (this.data.currentStation) {
+                    records = this.data.records[this.data.currentStation] || [];
+                } else {
+                    for (const stationId in this.data.records) {
+                        records = records.concat(this.data.records[stationId]);
+                    }
+                    records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                }
+                
+                const recentRecords = records.slice(0, 5);
+                const listElement = document.getElementById('recentRecords');
+                
+                listElement.innerHTML = '';
+                
+                if (recentRecords.length === 0) {
+                    listElement.innerHTML = '<li class="empty">暂无记录</li>';
+                    return;
+                }
+                
+                recentRecords.forEach(record => {
+                    const li = document.createElement('li');
+                    
+                    let stationName = '';
+                    for (const stationId in this.data.records) {
+                        if (this.data.records[stationId].some(r => r.id === record.id)) {
+                            stationName = this.getStationName(stationId);
+                            break;
+                        }
+                    }
+                    
+                    const paymentMethod = this.getPaymentMethodName(record.paymentMethod);
+                    const paymentInfo = paymentMethod ? ` (${paymentMethod})` : '';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `
+                        <div>${stationName ? stationName + ' - ' : ''}${this.getCategoryName(record.type, record.category)}${paymentInfo}</div>
+                        <div class="record-note">${record.note || ''}</div>
+                    `;
+                    
+                    const amountDiv = document.createElement('div');
+                    amountDiv.className = `record-amount ${record.type}`;
+                    amountDiv.textContent = `${record.type === 'income' ? '+' : '-'}¥${record.amount.toFixed(2)}`;
+                    
+                    li.appendChild(infoDiv);
+                    li.appendChild(amountDiv);
+                    listElement.appendChild(li);
+                });
+            },
+            
+            updateAllRecords() {
+                let records = [];
+                
+                if (this.data.currentStation) {
+                    records = this.data.records[this.data.currentStation] || [];
+                } else {
+                    for (const stationId in this.data.records) {
+                        records = records.concat(this.data.records[stationId]);
+                    }
+                }
+                
+                const typeFilter = document.getElementById('recordTypeFilter').value;
+                const categoryFilter = document.getElementById('recordCategoryFilter').value;
+                const monthFilter = document.getElementById('recordMonthFilter').value;
+                
+                let filteredRecords = [...records];
+                
+                if (typeFilter !== 'all') {
+                    filteredRecords = filteredRecords.filter(r => r.type === typeFilter);
+                }
+                
+                if (categoryFilter !== 'all') {
+                    filteredRecords = filteredRecords.filter(r => r.category === categoryFilter);
+                }
+                
+                if (monthFilter) {
+                    const [year, month] = monthFilter.split('-').map(Number);
+                    filteredRecords = filteredRecords.filter(r => {
+                        const recordDate = new Date(r.date);
+                        return recordDate.getFullYear() === parseInt(year) && 
+                               recordDate.getMonth() + 1 === parseInt(month);
+                    });
+                }
+                
+                // Sort by creation time (newest first)
+                filteredRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                const listElement = document.getElementById('allRecords');
+                listElement.innerHTML = '';
+                
+                if (filteredRecords.length === 0) {
+                    listElement.innerHTML = '<li class="empty">暂无记录</li>';
+                    return;
+                }
+                
+                filteredRecords.forEach(record => {
+                    const li = document.createElement('li');
+                    
+                    // Check if creation time is later than business time
+                    const businessDate = new Date(record.date);
+                    const createdDate = new Date(record.createdAt);
+                    
+                    // 只有当创建日期和业务日期不是同一天时才显示警告
+                    const isDateWarning = !this.isSameDay(createdDate, businessDate);
+                    
+                    if (isDateWarning) {
+                        li.classList.add('date-warning');
+                    }
+                    
+                    let stationName = '';
+                    for (const stationId in this.data.records) {
+                        if (this.data.records[stationId].some(r => r.id === record.id)) {
+                            stationName = this.getStationName(stationId);
+                            break;
+                        }
+                    }
+                    
+                    const paymentMethod = this.getPaymentMethodName(record.paymentMethod);
+                    const paymentInfo = paymentMethod ? ` (${paymentMethod})` : '';
+                    
+                    const businessDateStr = businessDate.toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour12: false
+                    });
+                    
+                    const createdDateStr = createdDate.toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `
+                        <div>${stationName ? stationName + ' - ' : ''}${this.getCategoryName(record.type, record.category)}${paymentInfo}</div>
+                        <div class="record-note">${record.note || ''}</div>
+                        <div class="record-created-date">记录时间: ${createdDateStr}</div>
+                        <div class="record-business-date ${isDateWarning ? 'record-date-warning' : ''}">业务时间: ${businessDateStr}</div>
+                    `;
+                    
+                    const amountDiv = document.createElement('div');
+                    amountDiv.className = `record-amount ${record.type}`;
+                    amountDiv.textContent = `${record.type === 'income' ? '+' : '-'}¥${record.amount.toFixed(2)}`;
+                    
+                    li.appendChild(infoDiv);
+                    li.appendChild(amountDiv);
+                    listElement.appendChild(li);
+                });
+            },
+            
+            // 检查两个日期是否是同一天
+            isSameDay(date1, date2) {
+                return date1.getFullYear() === date2.getFullYear() &&
+                       date1.getMonth() === date2.getMonth() &&
+                       date1.getDate() === date2.getDate();
+            },
+            
+            updateCharts() {
+                let records = [];
+                
+                if (this.data.currentStation) {
+                    records = this.data.records[this.data.currentStation] || [];
+                } else {
+                    for (const stationId in this.data.records) {
+                        records = records.concat(this.data.records[stationId]);
+                    }
+                }
+                
+                const timeRange = document.getElementById('statsTimeRange').value;
+                const now = new Date();
+                let filteredRecords;
+                
+                switch (timeRange) {
+                    case 'month':
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === now.getFullYear() && 
+                                   recordDate.getMonth() === now.getMonth();
+                        });
+                        break;
+                    case 'lastMonth':
+                        const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+                        const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+                        
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === lastMonthYear && 
+                                   recordDate.getMonth() === lastMonth;
+                        });
+                        break;
+                    case 'quarter':
+                        const currentQuarter = Math.floor(now.getMonth() / 3);
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === now.getFullYear() && 
+                                   Math.floor(recordDate.getMonth() / 3) === currentQuarter;
+                        });
+                        break;
+                    case 'year':
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === now.getFullYear();
+                        });
+                        break;
+                    case 'custom':
+                        const startMonth = document.getElementById('startMonth').value;
+                        const endMonth = document.getElementById('endMonth').value;
+                        
+                        if (startMonth && endMonth) {
+                            const [startYear, startMonthNum] = startMonth.split('-').map(Number);
+                            const [endYear, endMonthNum] = endMonth.split('-').map(Number);
+                            
+                            const startDate = new Date(startYear, startMonthNum - 1, 1);
+                            const endDate = new Date(endYear, endMonthNum, 0); // Last day of end month
+                            
+                            filteredRecords = records.filter(r => {
+                                const recordDate = new Date(r.date);
+                                return recordDate >= startDate && recordDate <= endDate;
+                            });
+                        } else {
+                            filteredRecords = [...records];
+                        }
+                        break;
+                    default:
+                        filteredRecords = [...records];
+                }
+                
+                const incomeRecords = filteredRecords.filter(r => r.type === 'income');
+                const incomeByCategory = {};
+                
+                incomeRecords.forEach(r => {
+                    if (!incomeByCategory[r.category]) {
+                        incomeByCategory[r.category] = 0;
+                    }
+                    incomeByCategory[r.category] += r.amount;
+                });
+                
+                const expenseRecords = filteredRecords.filter(r => r.type === 'expense');
+                const expenseByCategory = {};
+                
+                expenseRecords.forEach(r => {
+                    if (!expenseByCategory[r.category]) {
+                        expenseByCategory[r.category] = 0;
+                    }
+                    expenseByCategory[r.category] += r.amount;
+                });
+                
+                this.updateChart(
+                    'incomeChart', 
+                    '收入统计', 
+                    incomeByCategory, 
+                    this.data.recordTypes.income,
+                    '#4cc9f0'
+                );
+                
+                this.updateChart(
+                    'expenseChart', 
+                    '支出统计', 
+                    expenseByCategory, 
+                    this.data.recordTypes.expense,
+                    '#f72585'
+                );
+                
+                this.updateStatsDetail(incomeByCategory, expenseByCategory);
+            },
+            
+            updateSummaryTable() {
+                let records = [];
+                
+                if (this.data.currentStation) {
+                    records = this.data.records[this.data.currentStation] || [];
+                } else {
+                    for (const stationId in this.data.records) {
+                        records = records.concat(this.data.records[stationId]);
+                    }
+                }
+                
+                const timeRange = document.getElementById('statsTimeRange').value;
+                const now = new Date();
+                let filteredRecords;
+                
+                switch (timeRange) {
+                    case 'month':
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === now.getFullYear() && 
+                                   recordDate.getMonth() === now.getMonth();
+                        });
+                        break;
+                    case 'lastMonth':
+                        const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+                        const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+                        
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === lastMonthYear && 
+                                   recordDate.getMonth() === lastMonth;
+                        });
+                        break;
+                    case 'quarter':
+                        const currentQuarter = Math.floor(now.getMonth() / 3);
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === now.getFullYear() && 
+                                   Math.floor(recordDate.getMonth() / 3) === currentQuarter;
+                        });
+                        break;
+                    case 'year':
+                        filteredRecords = records.filter(r => {
+                            const recordDate = new Date(r.date);
+                            return recordDate.getFullYear() === now.getFullYear();
+                        });
+                        break;
+                    case 'custom':
+                        const startMonth = document.getElementById('startMonth').value;
+                        const endMonth = document.getElementById('endMonth').value;
+                        
+                        if (startMonth && endMonth) {
+                            const [startYear, startMonthNum] = startMonth.split('-').map(Number);
+                            const [endYear, endMonthNum] = endMonth.split('-').map(Number);
+                            
+                            const startDate = new Date(startYear, startMonthNum - 1, 1);
+                            const endDate = new Date(endYear, endMonthNum, 0); // Last day of end month
+                            
+                            filteredRecords = records.filter(r => {
+                                const recordDate = new Date(r.date);
+                                return recordDate >= startDate && recordDate <= endDate;
+                            });
+                        } else {
+                            filteredRecords = [...records];
+                        }
+                        break;
+                    default:
+                        filteredRecords = [...records];
+                }
+                
+                // Group records by month
+                const recordsByMonth = {};
+                
+                filteredRecords.forEach(record => {
+                    const recordDate = new Date(record.date);
+                    const year = recordDate.getFullYear();
+                    const month = recordDate.getMonth() + 1;
+                    const monthKey = `${year}-${month.toString().padStart(2, '0')}`;
+                    
+                    if (!recordsByMonth[monthKey]) {
+                        recordsByMonth[monthKey] = {
+                            income: 0,
+                            expense: 0
+                        };
+                    }
+                    
+                    if (record.type === 'income') {
+                        recordsByMonth[monthKey].income += record.amount;
+                    } else {
+                        recordsByMonth[monthKey].expense += record.amount;
+                    }
+                });
+                
+                // Sort months chronologically
+                const sortedMonths = Object.keys(recordsByMonth).sort();
+                
+                const tableBody = document.getElementById('summaryTableBody');
+                tableBody.innerHTML = '';
+                
+                if (sortedMonths.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">暂无数据</td></tr>';
+                    return;
+                }
+                
+                sortedMonths.forEach(monthKey => {
+                    const [year, month] = monthKey.split('-');
+                    const monthData = recordsByMonth[monthKey];
+                    const balance = monthData.income - monthData.expense;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${year}年<br>${month}月</td>
+                        <td class="income-cell">¥${monthData.income.toFixed(0)}</td>
+                        <td class="expense-cell">¥${monthData.expense.toFixed(0)}</td>
+                        <td class="balance-cell">¥${balance.toFixed(2)}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // Add total row
+                const totalIncome = filteredRecords
+                    .filter(r => r.type === 'income')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const totalExpense = filteredRecords
+                    .filter(r => r.type === 'expense')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const totalBalance = totalIncome - totalExpense;
+                
+                const totalRow = document.createElement('tr');
+                totalRow.style.fontWeight = 'bold';
+                totalRow.style.backgroundColor = 'var(--light-color)';
+                totalRow.innerHTML = `
+                    <td>总计</td>
+                    <td class="income-cell">¥${totalIncome.toFixed(0)}</td>
+                    <td class="expense-cell">¥${totalExpense.toFixed(0)}</td>
+                    <td class="balance-cell">¥${totalBalance.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(totalRow);
+            },
+            
+            updateChart(canvasId, title, dataByCategory, categories, color) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                
+                if (ctx.chart) {
+                    ctx.chart.destroy();
+                }
+                
+                const labels = [];
+                const data = [];
+                const backgroundColors = [];
+                
+                categories.forEach(cat => {
+                    if (dataByCategory[cat.id]) {
+                        labels.push(cat.name);
+                        data.push(dataByCategory[cat.id]);
+                        backgroundColors.push(this.getCategoryColor(cat.id));
+                    }
+                });
+                
+                if (labels.length === 0) {
+                    labels.push('无数据');
+                    data.push(1);
+                    backgroundColors.push('#adb5bd');
+                }
+                
+                ctx.chart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            borderWidth: 1,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: title,
+                                font: {
+                                    size: 16,
+                                    weight: '600'
+                                },
+                                padding: {
+                                    top: 10,
+                                    bottom: 20
+                                }
+                            },
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    font: {
+                                        weight: '500'
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '60%',
+                        borderRadius: 6
+                    }
+                });
+            },
+            
+            updateStatsDetail(incomeByCategory, expenseByCategory) {
+                const detailElement = document.getElementById('statsDetail');
+                detailElement.innerHTML = '';
+                
+                const incomeSection = document.createElement('div');
+                incomeSection.innerHTML = '<h3>收入明细</h3>';
+                
+                this.data.recordTypes.income.forEach(cat => {
+                    if (incomeByCategory[cat.id]) {
+                        const item = document.createElement('div');
+                        item.className = 'stats-item';
+                        item.innerHTML = `
+                            <div class="stats-label">
+                                <span class="stats-color" style="background-color: ${this.getCategoryColor(cat.id)}"></span>
+                                <span>${cat.name}</span>
+                            </div>
+                            <div>¥${incomeByCategory[cat.id].toFixed(2)}</div>
+                        `;
+                        incomeSection.appendChild(item);
+                    }
+                });
+                
+                const expenseSection = document.createElement('div');
+                expenseSection.innerHTML = '<h3>支出明细</h3>';
+                
+                this.data.recordTypes.expense.forEach(cat => {
+                    if (expenseByCategory[cat.id]) {
+                        const item = document.createElement('div');
+                        item.className = 'stats-item';
+                        item.innerHTML = `
+                            <div class="stats-label">
+                                <span class="stats-color" style="background-color: ${this.getCategoryColor(cat.id)}"></span>
+                                <span>${cat.name}</span>
+                            </div>
+                            <div>¥${expenseByCategory[cat.id].toFixed(2)}</div>
+                        `;
+                        expenseSection.appendChild(item);
+                    }
+                });
+                
+                detailElement.appendChild(incomeSection);
+                detailElement.appendChild(expenseSection);
+            },
+            
+            updateStationList() {
+                const listElement = document.getElementById('stationList');
+                listElement.innerHTML = '';
+                
+                if (this.data.stations.length === 0) {
+                    listElement.innerHTML = '<li class="empty">暂无站点，请添加</li>';
+                    return;
+                }
+                
+                this.data.stations.forEach(station => {
+                    const li = document.createElement('li');
+                    li.className = 'station-item';
+                    
+                    li.innerHTML = `
+                        <span class="station-item-name">${station.name}</span>
+                        <div class="station-actions">
+                            <button class="edit-btn" data-id="${station.id}">编辑</button>
+                        </div>
+                    `;
+                    
+                    listElement.appendChild(li);
+                });
+                
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const stationId = e.target.dataset.id;
+                        const station = this.data.stations.find(s => s.id === stationId);
+                        if (station) {
+                            document.getElementById('editStationId').value = stationId;
+                            document.getElementById('editStationName').value = station.name;
+                            document.getElementById('editStationModal').style.display = 'flex';
+                        }
+                    });
+                });
+            },
+
+            updateCategoryLists() {
+                const incomeListElement = document.getElementById('incomeCategoryList');
+                const expenseListElement = document.getElementById('expenseCategoryList');
+                
+                incomeListElement.innerHTML = '';
+                expenseListElement.innerHTML = '';
+                
+                if (this.data.recordTypes.income.length === 0) {
+                    incomeListElement.innerHTML = '<li class="empty">暂无收入类型</li>';
+                } else {
+                    this.data.recordTypes.income.forEach(category => {
+                        const li = document.createElement('li');
+                        li.className = 'category-item';
+                        li.innerHTML = `
+                            <span>${category.name}</span>
+                            <div class="category-actions">
+                                <button class="edit-btn" data-type="income" data-id="${category.id}">编辑</button>
+                            </div>
+                        `;
+                        incomeListElement.appendChild(li);
+                    });
+                }
+                
+                if (this.data.recordTypes.expense.length === 0) {
+                    expenseListElement.innerHTML = '<li class="empty">暂无支出类型</li>';
+                } else {
+                    this.data.recordTypes.expense.forEach(category => {
+                        const li = document.createElement('li');
+                        li.className = 'category-item';
+                        li.innerHTML = `
+                            <span>${category.name}</span>
+                            <div class="category-actions">
+                                <button class="edit-btn" data-type="expense" data-id="${category.id}">编辑</button>
+                            </div>
+                        `;
+                        expenseListElement.appendChild(li);
+                    });
+                }
+
+                // Add event listeners to edit buttons
+                document.querySelectorAll('#incomeCategoryList .edit-btn, #expenseCategoryList .edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const type = e.target.dataset.type;
+                        const id = e.target.dataset.id;
+                        const category = this.data.recordTypes[type].find(c => c.id === id);
+                        if (category) {
+                            document.getElementById('editCategoryType').value = type;
+                            document.getElementById('editCategoryName').value = category.name;
+                            document.getElementById('editCategoryId').value = id;
+                            document.getElementById('editCategoryModal').style.display = 'flex';
+                        }
+                    });
+                });
+            },
+
+            addCategory(type, name) {
+                if (!name.trim()) return;
+
+                // Check if name already exists
+                const existingCategory = this.data.recordTypes[type].find(c => c.name === name.trim());
+                if (existingCategory) {
+                    this.showAlert('该类型已存在');
+                    return;
+                }
+
+                const newCategory = {
+                    id: Date.now().toString(),
+                    name: name.trim()
+                };
+
+                this.data.recordTypes[type].push(newCategory);
+                this.saveRecordTypes();
+                this.updateCategoryLists();
+                this.initCategoryFilter();
+                document.getElementById('newCategoryName').value = '';
+                this.showAlert('类型添加成功');
+            },
+
+            editCategory(type, id, newName) {
+                if (!newName.trim()) return false;
+
+                const category = this.data.recordTypes[type].find(c => c.id === id);
+                if (category) {
+                    category.name = newName.trim();
+                    this.saveRecordTypes();
+                    this.updateCategoryLists();
+                    this.initCategoryFilter();
+                    this.showAlert('类型修改成功');
+                    return true;
+                }
+                return false;
+            },
+
+            deleteCategory(type, id) {
+                if (!confirm('确定要删除这个类型吗？相关的记录将保留但可能无法正确显示分类名称。')) return;
+
+                this.data.recordTypes[type] = this.data.recordTypes[type].filter(c => c.id !== id);
+                this.saveRecordTypes();
+                this.updateCategoryLists();
+                this.initCategoryFilter();
+                this.showAlert('类型删除成功');
+                this.hideModal();
+            },
+            
+            getCategoryName(type, categoryId) {
+                const categories = type === 'income' ? this.data.recordTypes.income : this.data.recordTypes.expense;
+                const category = categories.find(c => c.id === categoryId);
+                return category ? category.name : '未知分类';
+            },
+
+            getPaymentMethodName(methodId) {
+                const method = this.data.paymentMethods.find(m => m.id === methodId);
+                return method ? method.name : '';
+            },
+            
+            getCategoryColor(categoryId) {
+                // 预定义颜色映射
+                const predefinedColors = {
+                    // 收入类型颜色
+                    recharge: 'hsl(120, 60%, 50%)',
+                    company_card: 'hsl(90, 60%, 50%)',
+                    agent_card: 'hsl(60, 60%, 50%)',
+                    agent_recharge: 'hsl(30, 60%, 50%)',
+                    card_replacement: 'hsl(0, 60%, 50%)',
+                    bucket_sale: 'hsl(330, 60%, 50%)',
+                    accessory_sale: 'hsl(300, 60%, 50%)',
+                    repair_income: 'hsl(270, 60%, 50%)',
+                    other_income: 'hsl(240, 60%, 50%)',
+                    
+                    // 支出类型颜色
+                    filter: 'hsl(210, 60%, 50%)',
+                    repair: 'hsl(180, 60%, 50%)',
+                    water: 'hsl(150, 60%, 50%)',
+                    electric: 'hsl(120, 60%, 40%)',
+                    rent: 'hsl(90, 60%, 40%)',
+                    salary: 'hsl(60, 60%, 40%)',
+                    other_expense: 'hsl(30, 60%, 40%)'
+                };
+                
+                // 如果预定义了颜色，则使用预定义颜色
+                if (predefinedColors[categoryId]) {
+                    return predefinedColors[categoryId];
+                }
+                
+                // 否则为未知分类生成随机但稳定的颜色
+                let hash = 0;
+                for (let i = 0; i < categoryId.length; i++) {
+                    hash = categoryId.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                
+                const hue = Math.abs(hash % 360);
+                return `hsl(${hue}, 70%, 60%)`;
+            },
+            
+            showPage(pageId) {
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.remove('active');
+                });
+                
+                document.getElementById(pageId).classList.add('active');
+                
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.page === pageId);
+                });
+                
+                if (pageId === 'statsPage') {
+                    this.updateCharts();
+                    this.updateSummaryTable();
+                }
+                
+                if (pageId === 'recordsPage') {
+                    this.updateAllRecords();
+                }
+            },
+            
+            showModal(type) {
+                const modal = document.getElementById('recordModal');
+                const title = type === 'income' ? '记录收入' : '记录支出';
+                
+                document.getElementById('modalTitle').textContent = title;
+                
+                const categorySelect = document.getElementById('recordCategory');
+                categorySelect.innerHTML = '';
+                
+                const categories = type === 'income' ? this.data.recordTypes.income : this.data.recordTypes.expense;
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    categorySelect.appendChild(option);
+                });
+                
+                // 修正日期设置 - 使用本地日期而不是UTC
+                const now = new Date();
+                // 方法1：手动构建日期字符串（推荐）
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const today = `${year}-${month}-${day}`;
+                
+                // 方法2：使用toLocaleDateString（备选）
+                // const today = now.toLocaleDateString('zh-CN', {
+                //     year: 'numeric',
+                //     month: '2-digit',
+                //     day: '2-digit'
+                // }).replace(/\//g, '-');
+                
+                document.getElementById('recordDate').value = today;
+                
+                // 重置水站选择
+                document.getElementById('modalStationSelect').value = this.data.currentStation || '';
+                
+                modal.style.display = 'flex';
+            },
+
+            hideModal() {
+                document.getElementById('recordModal').style.display = 'none';
+                document.getElementById('importModal').style.display = 'none';
+                document.getElementById('editStationModal').style.display = 'none';
+                document.getElementById('editCategoryModal').style.display = 'none';
+                
+                document.getElementById('recordAmount').value = '';
+                document.getElementById('recordNote').value = '';
+            },
+            
+            setupEventListeners() {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        this.showPage(item.dataset.page);
+                    });
+                });
+                
+                document.getElementById('stationSelect').addEventListener('change', (e) => {
+                    this.selectStation(e.target.value);
+                });
+                
+                document.getElementById('btnAddIncome').addEventListener('click', () => {
+                    this.showModal('income');
+                });
+                
+                document.getElementById('btnAddExpense').addEventListener('click', () => {
+                    this.showModal('expense');
+                });
+                
+                document.getElementById('btnSaveRecord').addEventListener('click', () => {
+                    const amount = document.getElementById('recordAmount').value;
+                    const category = document.getElementById('recordCategory').value;
+                    const paymentMethod = document.getElementById('recordPaymentMethod').value;
+                    const date = document.getElementById('recordDate').value;
+                    const note = document.getElementById('recordNote').value;
+                    const type = document.getElementById('modalTitle').textContent.includes('收入') ? 'income' : 'expense';
+                    
+                    this.addRecord(type, amount, category, paymentMethod, date, note);
+                });
+                
+                document.querySelectorAll('.close-modal').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.hideModal();
+                    });
+                });
+                
+                document.getElementById('btnAddStation').addEventListener('click', () => {
+                    const name = document.getElementById('newStationName').value;
+                    this.addStation(name);
+                });
+                
+                document.getElementById('btnExportData').addEventListener('click', () => {
+                    this.exportData();
+                });
+                
+                document.getElementById('btnImportData').addEventListener('click', () => {
+                    document.getElementById('importModal').style.display = 'flex';
+                });
+                
+                document.getElementById('btnConfirmImport').addEventListener('click', () => {
+                    const file = document.getElementById('importFile').files[0];
+                    const override = document.getElementById('importOverride').checked;
+                    
+                    if (file) {
+                        this.importData(file, override);
+                    } else {
+                        alert('请选择要导入的文件');
+                    }
+                });
+                
+                document.getElementById('btnClearData').addEventListener('click', () => {
+                    this.clearData();
+                });
+                
+                document.getElementById('btnSaveStationName').addEventListener('click', () => {
+                    const stationId = document.getElementById('editStationId').value;
+                    const newName = document.getElementById('editStationName').value;
+                    
+                    if (this.editStation(stationId, newName)) {
+                        this.hideModal();
+                    } else {
+                        alert('编辑失败');
+                    }
+                });
+
+                document.getElementById('btnAddCategory').addEventListener('click', () => {
+                    const type = document.getElementById('newCategoryType').value;
+                    const name = document.getElementById('newCategoryName').value;
+                    this.addCategory(type, name);
+                });
+
+                document.getElementById('btnSaveCategory').addEventListener('click', () => {
+                    const type = document.getElementById('editCategoryType').value;
+                    const id = document.getElementById('editCategoryId').value;
+                    const newName = document.getElementById('editCategoryName').value;
+                    
+                    if (this.editCategory(type, id, newName)) {
+                        this.hideModal();
+                    } else {
+                        alert('编辑失败');
+                    }
+                });
+
+                document.getElementById('btnDeleteCategory').addEventListener('click', () => {
+                    const type = document.getElementById('editCategoryType').value;
+                    const id = document.getElementById('editCategoryId').value;
+                    this.deleteCategory(type, id);
+                });
+                
+                document.getElementById('recordTypeFilter').addEventListener('change', () => {
+                    this.updateAllRecords();
+                });
+                
+                document.getElementById('recordCategoryFilter').addEventListener('change', () => {
+                    this.updateAllRecords();
+                });
+                
+                document.getElementById('recordMonthFilter').addEventListener('change', () => {
+                    this.updateAllRecords();
+                });
+                
+                document.getElementById('statsTimeRange').addEventListener('change', (e) => {
+                    const customRangeContainer = document.getElementById('customRangeContainer');
+                    if (e.target.value === 'custom') {
+                        customRangeContainer.style.display = 'flex';
+                    } else {
+                        customRangeContainer.style.display = 'none';
+                    }
+                    this.updateCharts();
+                    this.updateSummaryTable();
+                });
+                
+                document.getElementById('startMonth').addEventListener('change', () => {
+                    if (document.getElementById('statsTimeRange').value === 'custom') {
+                        this.updateCharts();
+                        this.updateSummaryTable();
+                    }
+                });
+                
+                document.getElementById('endMonth').addEventListener('change', () => {
+                    if (document.getElementById('statsTimeRange').value === 'custom') {
+                        this.updateCharts();
+                        this.updateSummaryTable();
+                    }
+                });
+                
+                // 添加筛选选项卡点击事件
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        // 更新活动选项卡
+                        document.querySelectorAll('.filter-tab').forEach(t => {
+                            t.classList.remove('active');
+                        });
+                        tab.classList.add('active');
+                        
+                        // 更新活动内容
+                        const filterType = tab.dataset.filter;
+                        document.querySelectorAll('.filter-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        document.getElementById(`${filterType}FilterContent`).classList.add('active');
+                    });
+                });
+                
+                this.initCategoryFilter();
+            },
+            
+            initCategoryFilter() {
+                const categorySelect = document.getElementById('recordCategoryFilter');
+                categorySelect.innerHTML = '<option value="all">所有分类</option>';
+                
+                this.data.recordTypes.income.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    categorySelect.appendChild(option);
+                });
+                
+                this.data.recordTypes.expense.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    categorySelect.appendChild(option);
+                });
+            }
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    </script>
+</body>
 </html>
